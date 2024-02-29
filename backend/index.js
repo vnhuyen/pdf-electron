@@ -15,22 +15,29 @@ app.use(express.json())
 
 
 app.post('/convert-pdf-to-epub', upload.single('file'), async (req, res) => {
-    const localImageFileName = 'D://demo/pdftool/pdf-electron-demo/client/src/document/bookmark-sample.pdf' 
-    const storageFileName = "sample.epub"; 
+    const localPDFFilePath = "D://demo/pdftool/pdf-electron-demo/client/src/document/bookmark-sample.pdf"; // Path to the local PDF file
+    const storagePDFFileName = "sample-convert.epub"; // Name under which the PDF file will be saved in Aspose Cloud Storage
+    const outputEPUBFilePath = "D://demo/pdftool/pdf-electron-demo/client/src/document/sample.epub"; // Path where you want to save the converted EPUB file locally
     const pdfApi = new PdfApi(clientId, clientSecret);
-    let fileData = fs.readFileSync(localImageFileName);
+
     try {
-        let uploadResult = await pdfApi.uploadFile(storageFileName, fileData);
-        console.log(uploadResult.response.text);
-    }
-    catch (error) {
-        console.error(error.response.text);
-    }
-    try {
-        let convertResult = await pdfApi.putPdfInRequestToEpub("sample-epub-to-pdf.pdf", storageFileName);
-        console.log(convertResult.response.text);
+        // Upload the PDF file to Aspose Cloud Storage
+        const fileData = fs.readFileSync(localPDFFilePath);
+        await pdfApi.uploadFile(storagePDFFileName, fileData);
+        console.log("File uploaded successfully");
+
+        // Convert the uploaded PDF to EPUB
+        const convertResult = await pdfApi.putPdfInStorageToEpub(storagePDFFileName, outputEPUBFilePath);
+        console.log("Conversion to EPUB completed", convertResult);
+
+        // Optionally, download the converted EPUB file if needed
+        // Since Aspose Cloud SDK does not return the file content directly in the conversion result,
+        // you would typically need to download the file separately.
+        const downloadResult = await pdfApi.downloadFile(outputEPUBFilePath);
+        fs.writeFileSync(path.join(__dirname, "sample.epub"), downloadResult.body);
+        console.log("Converted EPUB file has been downloaded and saved locally.");
     } catch (error) {
-        console.error(error.response.text);
+        console.error("An error occurred:", error.message);
     }
 });
 
