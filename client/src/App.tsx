@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import './App.css'
 import Epub from 'epubjs'
 import { PdfApi } from 'asposepdfcloud'
-//import EbookConverter from 'node-ebook-converter'
-
+import fs from 'fs'
+import path from 'path'
 function App() {
   let book = Epub()
   let rendition: any = null
@@ -28,48 +28,41 @@ function App() {
     }
   }
 
-  // const handleConvertEpubToPDF = async () => {
-  //   const outputPdfPath = 'output.pdf'
-  //   try {
-  //     await EbookConverter({ input: '../../alpdf/document/bookmark-sample.epub', output: outputPdfPath })
-  //     alert('EPUB converted to PDF successfully!')
-  //   } catch (error) {
-  //     console.error('Error converting EPUB to PDF:', error)
-  //   }
-  // }
-
-  // const handleConvertPDFToEpub = async () => {
-  //   const outputEpubPath = 'output.epub'
-  //   try {
-  //     await EbookConverter({ input: '../../alpdf/document/bookmark-sample.pdf', output: outputEpubPath })
-  //     alert('PDF converted to EPUB successfully!')
-  //   } catch (error) {
-  //     console.error('Error converting PDF to EPUB:', error)
-  //   }
-  // }
-
-  const handleConvertEpubToPDF = () => {
+  const handleConvertEpubToPDF = async () => {
     const clinetId = '2fa310e5-25e4-44cb-97b7-742993ed8c53'
     const clinetSecret = '93f1bef6571209fb5e38a6b1c179597f'
     const pdfApi = new PdfApi(clinetId, clinetSecret)
+    await pdfApi
+      .getEpubInStorageToPdf('D://demo/pdftool/pdf-electron-demo/client/src/document/bookmark-sample.epub')
+      .then((response) => {
+        console.log('Conversion Response: ', response.body)
+      })
+      .catch((error) => {
+        console.error('An error occurred:', error)
+      })
+  }
 
-    let pageNumber = 1
-    let pdfDocName = 'example.pdf'
-    let remoteFolder = 'folderName'
+  const convertPDFtoEPUB = async () => {
+    const clientId = '2fa310e5-25e4-44cb-97b7-742993ed8c53'
+    const clientSecret = '93f1bef6571209fb5e38a6b1c179597f'
+    const localFilePath = 'D://demo/pdftool/pdf-electron-demo/client/src/document/bookmark-sample.pdf'
+    const outputEPUBFilePath = 'D://demo/pdftool/pdf-electron-demo/client/src/document/bookmark-sample.epub'
+    const storageFileName = 'sample.pdf'
+    const pdfApi = new PdfApi(clientId, clientSecret)
+    try {
+      const fileData = fs.readFileSync(localFilePath)
+      await pdfApi.uploadFile(storageFileName, fileData)
+      console.log('File uploaded successfully')
 
-    pdfApi.getPageAnnotations(pdfDocName, pageNumber, null, remoteFolder).then((result) => {
-      console.log(result.response)
-      console.log(result.body)
-    })
-    // pdfApi
-    //   .getEpubInStorageToPdf('./document/bookmark-sample.epub')
-    //   .then((response) => {
-    //     console.log('Conversion Response: ', response.body)
-    //     // Optionally, download the converted file if needed
-    //   })
-    //   .catch((error) => {
-    //     console.error('An error occurred:', error)
-    //   })
+      const convertResult = await pdfApi.putPdfInStorageToEpub(storageFileName, outputEPUBFilePath)
+      console.log('Conversion to EPUB completed', convertResult)
+
+      const downloadResult = await pdfApi.downloadFile(outputEPUBFilePath)
+      fs.writeFileSync(path.join(__dirname, 'sample.epub'), downloadResult.body)
+      console.log('Converted EPUB file has been downloaded and saved locally.')
+    } catch (error) {
+      console.error('An error occurred:', error.message)
+    }
   }
   return (
     <div className='w-full p-5'>
@@ -88,7 +81,7 @@ function App() {
       </button>
       <button
         className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-        // onClick={handleConvertPDFToEpub}
+        onClick={convertPDFtoEPUB}
       >
         Convert PDF to Epub
       </button>
